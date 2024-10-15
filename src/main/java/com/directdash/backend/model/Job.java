@@ -1,5 +1,6 @@
 package com.directdash.backend.model;
 
+import com.directdash.backend.model.enums.JobStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import java.time.LocalDateTime;
@@ -14,6 +15,7 @@ public class Job extends DBObject {
 	public String comment;
 	public LocalDateTime creationDate;
 	public Integer neededInMinutes;
+	public JobStatus status;
 
 	public String getTitle() {
 		return title;
@@ -61,5 +63,13 @@ public class Job extends DBObject {
 
 	public void setComment(String comment) {
 		this.comment = comment;
+	}
+
+	public JobStatus getStatus() {
+		return status;
+	}
+
+	public void setStatus(JobStatus status) {
+		this.status = status;
 	}
 }

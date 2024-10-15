@@ -1,10 +1,11 @@
 package com.directdash.backend.model;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -13,12 +14,18 @@ public class Worker extends DBObject {
 	public String name;
 	public String fullAddress;
 	public Integer zipCode;
-	public String email;
+	@Column(unique = true)
+	public String email; //also username
 	public String phoneNumber;
-	@OneToMany(cascade = CascadeType.ALL)
-	public List<Work> works;
-	@OneToMany(cascade = CascadeType.ALL)
-	public List<Review> reviews;
+	@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+	@JoinColumn(name = "worker_id")
+	private List<Work> works;
+	@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+	@JoinColumn(name = "worker_id")
+	private List<Review> reviews;
+	@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+	@JoinColumn(name = "worker_id")
+	private List<Location> locations;
 
 	public String getName() {
 		return name;
@@ -68,6 +75,13 @@ public class Worker extends DBObject {
 		this.works = works;
 	}
 
+	public void addWork(Work work) {
+		if (this.works == null) {
+			this.works = new ArrayList<>();
+		}
+		this.works.add(work);
+	}
+
 	public List<Review> getReviews() {
 		return reviews;
 	}
@@ -75,4 +89,8 @@ public class Worker extends DBObject {
 	public void setReviews(List<Review> reviews) {
 		this.reviews = reviews;
 	}
+
+    public void addLocation(Double latitude, Double longitude) {
+        
+    }
 }

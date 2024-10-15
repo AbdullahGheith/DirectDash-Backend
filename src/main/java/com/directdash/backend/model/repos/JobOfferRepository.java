@@ -7,5 +7,6 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface JobOfferRepository extends JpaRepository<JobOffer, String> {
-    Optional<JobOffer> findByIdAndWorkerEmail(String id, String email);
+
+    Optional<JobOffer> findByWorkerEmailAndId(String email, String id);
 }

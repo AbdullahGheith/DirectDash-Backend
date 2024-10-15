@@ -1,13 +1,12 @@
 package com.directdash.backend.controllers;
 
-import com.directdash.backend.services.WorkerService;
-import org.springframework.beans.factory.annotation.Autowired;
 import com.directdash.backend.model.Job;
 import com.directdash.backend.model.JobOffer;
 import com.directdash.backend.model.Work;
 import com.directdash.backend.model.enums.Vehicle;
+import com.directdash.backend.services.WorkerService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,7 +22,7 @@ public class WorkerController {
 
 	@PostMapping("/worker/start")
 	public ResponseEntity<Work> startWorking(@RequestParam Double maxDistance, @RequestParam Vehicle vehicle, @RequestParam Double startLatitude, @RequestParam Double startLongitude) {
-		Work work = workerService.startWorking(user, maxDistance, vehicle, startLatitude, startLongitude);
+		Work work = workerService.startWorking(user.getUsername(), maxDistance, vehicle, startLatitude, startLongitude);
 		return ResponseEntity.ok(work);
 	}
 
@@ -47,7 +46,7 @@ public class WorkerController {
 
 	@PostMapping("/worker/reportlocation")
 	public ResponseEntity<Boolean> reportLocation(@RequestParam Double latitude, @RequestParam Double longitude) {
-		boolean success = workerService.reportLocation(user, latitude, longitude);
+		boolean success = workerService.reportLocation(user.getUsername(), latitude, longitude);
 		return ResponseEntity.ok(success);
 	}
 

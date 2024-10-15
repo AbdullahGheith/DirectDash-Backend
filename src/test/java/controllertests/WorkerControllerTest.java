@@ -1,53 +1,40 @@
 package controllertests;
 
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-
-import static org.mockito.Mockito.*;
-
 import com.directdash.backend.Application;
-import com.directdash.backend.model.Location;
-import jakarta.persistence.EntityManager;
-import jakarta.transaction.Transactional;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.stereotype.Component;
-import org.springframework.test.context.ActiveProfiles;
-
 import com.directdash.backend.controllers.SignedInUser;
 import com.directdash.backend.controllers.WorkerController;
-import com.directdash.backend.model.Work;
-import com.directdash.backend.model.Worker;
 import com.directdash.backend.model.Job;
 import com.directdash.backend.model.JobOffer;
+import com.directdash.backend.model.Location;
+import com.directdash.backend.model.Work;
+import com.directdash.backend.model.Worker;
+import com.directdash.backend.model.enums.JobOfferStatus;
+import com.directdash.backend.model.enums.JobStatus;
 import com.directdash.backend.model.enums.Vehicle;
 import com.directdash.backend.model.enums.WorkStatus;
-import com.directdash.backend.model.enums.JobStatus;
-import com.directdash.backend.model.enums.JobOfferStatus;
-import com.directdash.backend.model.repos.WorkRepository;
-import com.directdash.backend.model.repos.WorkerRepository;
+import com.directdash.backend.model.repos.JobOfferRepository;
 import com.directdash.backend.model.repos.JobRepository;
 import com.directdash.backend.model.repos.LocationRepository;
-import com.directdash.backend.model.repos.JobOfferRepository;
-import com.directdash.backend.services.WorkerService;
+import com.directdash.backend.model.repos.WorkRepository;
+import com.directdash.backend.model.repos.WorkerRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.stereotype.Component;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
 
 @Component
 @SpringBootTest(classes = Application.class)
@@ -96,7 +83,7 @@ public class WorkerControllerTest {
         Work work = workerController.startWorking(10.0, Vehicle.Car, 40.7128, -74.0060).getBody();
 
         assertNotNull(work);
-        assertEquals(WorkStatus.Started, work.getStatus());
+        assertEquals(WorkStatus.Working, work.getStatus());
         assertEquals(10.0, work.getMaxDistanceKm());
         assertEquals(Vehicle.Car, work.getVehicle());
         assertEquals(40.7128, work.getStartLatitude());
@@ -106,7 +93,7 @@ public class WorkerControllerTest {
         assertNotNull(savedWork);
         assertEquals(work.getId(), savedWork.getId());
 
-        assertEquals(WorkStatus.Started, savedWork.getStatus());
+        assertEquals(WorkStatus.Working, savedWork.getStatus());
         assertEquals(10.0, savedWork.getMaxDistanceKm());
         assertEquals(Vehicle.Car, savedWork.getVehicle());
         assertEquals(40.7128, savedWork.getStartLatitude());
@@ -124,9 +111,9 @@ public class WorkerControllerTest {
     @Transactional
     void testStopWorking() {
         // Arrange: Start working
-        Work startedWork = workerController.startWorking(10.0, Vehicle.Car, 40.7128, -74.0060).getBody();
-        assertNotNull(startedWork);
-        assertEquals(WorkStatus.Started, startedWork.getStatus());
+        Work workingWork = workerController.startWorking(10.0, Vehicle.Car, 40.7128, -74.0060).getBody();
+        assertNotNull(workingWork);
+        assertEquals(WorkStatus.Working, workingWork.getStatus());
 
         // Act & Assert: Stop working successfully
         Work stoppedWork = workerController.stopWorking().getBody();
@@ -151,6 +138,7 @@ public class WorkerControllerTest {
 
         JobOffer jobOffer = new JobOffer();
         jobOffer.setJob(job);
+        jobOffer.setWorker(testWorker);
         jobOffer.setStatus(JobOfferStatus.Pending);
         entityManager.persist(jobOffer);
         entityManager.flush();
@@ -174,6 +162,7 @@ public class WorkerControllerTest {
         entityManager.persist(job);
 
         JobOffer jobOffer = new JobOffer();
+        jobOffer.setWorker(testWorker);
         jobOffer.setJob(job);
         jobOffer.setStatus(JobOfferStatus.Pending);
         entityManager.persist(jobOffer);
@@ -198,7 +187,7 @@ public class WorkerControllerTest {
 
         Work work = workerController.startWorking(10D, Vehicle.Car, 40.7128, -74.0060).getBody();
         assertNotNull(work);
-        assertEquals(WorkStatus.Started, work.getStatus());
+        assertEquals(WorkStatus.Working, work.getStatus());
 
         boolean result2 = workerController.reportLocation(10.0, 10.0).getBody();
         assertTrue(result2);

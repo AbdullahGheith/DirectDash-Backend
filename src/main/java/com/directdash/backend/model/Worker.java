@@ -5,6 +5,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,6 +18,8 @@ public class Worker extends DBObject {
 	@Column(unique = true)
 	public String email; //also username
 	public String phoneNumber;
+	@OneToOne(cascade = CascadeType.ALL)
+	private Work currentWork;
 	@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
 	@JoinColumn(name = "worker_id")
 	private List<Work> works;
@@ -25,7 +28,7 @@ public class Worker extends DBObject {
 	private List<Review> reviews;
 	@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
 	@JoinColumn(name = "worker_id")
-	private List<Location> locations;
+	private List<Location> locations = new ArrayList<>();
 
 	public String getName() {
 		return name;
@@ -90,7 +93,23 @@ public class Worker extends DBObject {
 		this.reviews = reviews;
 	}
 
-    public void addLocation(Double latitude, Double longitude) {
-        
-    }
+	public Work getCurrentWork() {
+		return currentWork;
+	}
+
+	public void setCurrentWork(Work currentWork) {
+		this.currentWork = currentWork;
+	}
+
+	public List<Location> getLocations() {
+		return locations;
+	}
+
+	public void setLocations(List<Location> locations) {
+		this.locations = locations;
+	}
+
+	public void addLocation(Double latitude, Double longitude) {
+      locations.add(new Location(latitude, longitude));
+  }
 }

@@ -1,11 +1,5 @@
 package com.directdash.backend.services;
 
-import java.time.LocalDateTime;
-import java.util.Optional;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import com.directdash.backend.controllers.SignedInUser;
 import com.directdash.backend.model.Job;
 import com.directdash.backend.model.JobOffer;
@@ -19,6 +13,9 @@ import com.directdash.backend.model.repos.JobOfferRepository;
 import com.directdash.backend.model.repos.JobRepository;
 import com.directdash.backend.model.repos.WorkRepository;
 import com.directdash.backend.model.repos.WorkerRepository;
+import java.time.LocalDateTime;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 @Service
 public class WorkerService {
@@ -35,12 +32,12 @@ public class WorkerService {
 	@Autowired
 	private JobOfferRepository jobOfferRepository;
 
-	public Work startWorking(SignedInUser user, Double maxDistance, Vehicle vehicle, Double startLatitude, Double startLongitude) {
-		Worker worker = workerRepository.findByEmail(user.getUsername())
+	public Work startWorking(String userUsername, Double maxDistance, Vehicle vehicle, Double startLatitude, Double startLongitude) {
+		Worker worker = workerRepository.findByEmail(userUsername)
 			.orElseThrow(() -> new IllegalArgumentException("Worker not found"));
 
-		Optional<Work> existingWork = workRepository.findTopByWorkerAndStatusOrderByStartTimeDesc(worker, WorkStatus.Started);
-		if (existingWork.isPresent()) {
+		Work currentWork = worker.getCurrentWork();
+		if (currentWork != null && currentWork.getStatus() == WorkStatus.Working) {
 			throw new IllegalStateException("Worker already has an active work session");
 		}
 
@@ -50,9 +47,9 @@ public class WorkerService {
 		newWork.setStartLatitude(startLatitude);
 		newWork.setStartLongitude(startLongitude);
 		newWork.setStartTime(LocalDateTime.now());
-		newWork.setStatus(WorkStatus.Started);
+		newWork.setStatus(WorkStatus.Working);
 
-		worker.addWork(newWork);
+		worker.setCurrentWork(newWork);
 		workerRepository.save(worker);
 
 		return workRepository.save(newWork);
@@ -63,16 +60,19 @@ public class WorkerService {
 		Worker worker = workerRepository.findByEmail(user.getUsername())
 			.orElseThrow(() -> new IllegalArgumentException("Worker not found"));
 
-		Work latestWork = workRepository.findTopByWorkerAndStatusOrderByStartTimeDesc(worker, WorkStatus.Started)
-			.orElseThrow(() -> new IllegalStateException("No active work session found for the user"));
+		if (worker.getCurrentWork() != null && worker.getCurrentWork().getStatus() == WorkStatus.Finished) {
+			throw new IllegalStateException("No active work session found for the user");
+		}
 
-		latestWork.setEndTime(LocalDateTime.now());
-		latestWork.setStatus(WorkStatus.Finished);
-		return workRepository.save(latestWork);
+		worker.getCurrentWork().setEndTime(LocalDateTime.now());
+		worker.getCurrentWork().setStatus(WorkStatus.Finished);
+		worker.addWork(worker.getCurrentWork());
+		workerRepository.save(worker);
+		return worker.getCurrentWork();
 	}
 
 	public Job acceptJobOffer(SignedInUser user, String jobOfferId) {
-		JobOffer jobOffer = jobOfferRepository.findByIdAndWorkerEmail(jobOfferId, user.getUsername())
+		JobOffer jobOffer = jobOfferRepository.findByWorkerEmailAndId(user.getUsername(), jobOfferId)
 			.orElseThrow(() -> new IllegalArgumentException("Job offer not found"));
 		
 		if (jobOffer.getStatus() != JobOfferStatus.Pending) {
@@ -88,7 +88,7 @@ public class WorkerService {
 	}
 
 	public JobOffer rejectJobOffer(SignedInUser user, String jobOfferId) {
-		JobOffer jobOffer = jobOfferRepository.findById(jobOfferId)
+		JobOffer jobOffer = jobOfferRepository.findByWorkerEmailAndId(user.getUsername(), jobOfferId)
 			.orElseThrow(() -> new IllegalArgumentException("Job offer not found"));
 		
 		if (jobOffer.getStatus() != JobOfferStatus.Pending) {
@@ -99,9 +99,13 @@ public class WorkerService {
 		return jobOfferRepository.save(jobOffer);
 	}
 
-	public boolean reportLocation(SignedInUser user, Double latitude, Double longitude) {
-		Worker worker = workerRepository.findByEmail(user.getUsername())
+	public boolean reportLocation(String userUsername, Double latitude, Double longitude) {
+		Worker worker = workerRepository.findByEmail(userUsername)
 			.orElseThrow(() -> new IllegalArgumentException("Worker not found"));
+
+		if (worker.getCurrentWork() == null || worker.getCurrentWork().getStatus() != WorkStatus.Working) {
+			return false;
+		}
 
 		worker.addLocation(latitude, longitude);
 		workerRepository.save(worker);
